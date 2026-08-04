@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --text: #1a1d23;
+  --text-muted: #5b6472;
+  --border: #d7dce3;
+  --accent: #2b5c8f;
+  --accent-text: #ffffff;
+  --accent-soft: #e8eff7;
+  --correct: #3f8f5b;
+  --present: #c9a227;
+  --absent: #7c8595;
+  --focus: #1c7ed6;
+}
+ 
+[data-theme="dark"] {
+  --bg: #14171c;
+  --surface: #1e232b;
+  --text: #eef1f5;
+  --text-muted: #a3adbb;
+  --border: #333b47;
+  --accent: #6ea8dc;
+  --accent-text: #10151b;
+  --accent-soft: #253544;
+  --correct: #5cb37c;
+  --present: #d9bb4a;
+  --absent: #6b7482;
+  --focus: #74c0fc;
+}
+ 
+/* Base */
+html {
+  color-scheme: light;
+}
+ 
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+ 
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+}
+ 
+/* IPA symbols render badly in some UI fonts. Anything showing a phoneme gets
+   this class so the symbols stay legible and evenly spaced. */
+.ipa {
+  font-family: "Gentium Plus", "Charis SIL", "Doulos SIL", "Segoe UI",
+    "Lucida Sans Unicode", sans-serif;
+  font-feature-settings: "kern" 1;
+}
+ 
+/* Accessibility */
+/* Visible focus ring on every interactive element — keyboard users need to be able to see where they are. Never remove this without replacing it. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+ 
+/* "Skip to main content" link: hidden until focused, so a keyboard user can jump past the navigation instead of tabbing through it on every page. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+ 
+.skip-link:focus {
+  left: 0.5rem;
+  top: 0.5rem;
+}
+ 
+/* Respect users who have asked their OS to reduce motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
