@@ -1,69 +1,75 @@
-import Image from "next/image";
+/**
+ * Home — landing page with a short introduction and links to the two builders.
+ */
+
+import Link from "next/link";
+
+const TOOLS = [
+  {
+    href: "/wordle",
+    title: "Wordle Builder",
+    body: "Choose a phoneme word, set the number of guesses, and download a playable Wordle activity as a single HTML file.",
+    cta: "Build a Wordle",
+  },
+  {
+    href: "/word-search",
+    title: "Word Search Builder",
+    body: "Pick a short list of phoneme words and generate a printable, playable word search grid.",
+    cta: "Build a Word Search",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="flex flex-col gap-10">
+      <section className="flex flex-col gap-3">
+        <h2 className="text-2xl font-bold">
+          Build phoneme activities for the classroom
+        </h2>
+        <p className="max-w-2xl text-[var(--text-muted)]">
+          This tool helps Speech Pathology teachers create phoneme-based
+          classroom activities. Activities are built around phoneme symbols
+          rather than standard spelling, so students work with the sounds of a
+          word instead of its letters. Each activity downloads as a single HTML
+          file that runs in any web browser, with no internet connection or
+          software required.
+        </p>
+      </section>
+
+      <section aria-labelledby="tools-heading" className="flex flex-col gap-4">
+        <h2 id="tools-heading" className="text-xl font-semibold">
+          Choose an activity
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {TOOLS.map((tool) => (
+            <article
+              key={tool.href}
+              className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <h3 className="text-lg font-semibold">{tool.title}</h3>
+              <p className="flex-1 text-sm text-[var(--text-muted)]">
+                {tool.body}
+              </p>
+              <Link
+                href={tool.href}
+                className="inline-block rounded bg-[var(--accent)] px-4 py-2 text-center text-sm font-semibold text-[var(--accent-text)]"
+              >
+                {tool.cta}
+              </Link>
+            </article>
+          ))}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </section>
+
+      <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+        <h2 className="mb-2 text-lg font-semibold">How it works</h2>
+        <ol className="ml-5 list-decimal space-y-1 text-sm text-[var(--text-muted)]">
+          <li>Configure the activity using the builder form.</li>
+          <li>Preview it live to check the phonemes and hints are right.</li>
+          <li>Press Generate to download a standalone .html file.</li>
+          <li>Share the file with students — it works offline.</li>
+        </ol>
+      </section>
     </div>
   );
 }
