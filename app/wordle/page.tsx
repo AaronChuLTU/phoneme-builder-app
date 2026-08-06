@@ -21,6 +21,17 @@ import { downloadFile, safeFilename } from "@/lib/download";
 type Difficulty = 3 | 4 | 5;
 type Mode = "corpus" | "custom";
 
+/**
+ * Upper bound on custom word length.
+ *
+ * The corpus tops out at five phonemes and standard Wordle uses five letters.
+ * Beyond about eight the activity stops being useful — a student cannot hold
+ * that many sounds in working memory while also tracking feedback across
+ * rows — and the grid stops fitting on a classroom screen. The cap is a
+ * deliberate pedagogical limit, not a technical one.
+ */
+const MAX_PHONEMES = 8;
+
 const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   3: "Easy — 3 phonemes",
   4: "Medium — 4 phonemes",
@@ -47,6 +58,12 @@ export default function WordleBuilder() {
   const wordLength = phonemes.length;
 
   const canGenerate = wordLength > 0 && maxGuesses >= 1;
+  const atPhonemeLimit =
+    mode === "custom" && customPhonemes.length >= MAX_PHONEMES;
+
+  // Tiles shrink as the word grows so a long word still fits the preview
+  // column instead of forcing the layout apart.
+  const tileSize = Math.max(28, Math.min(44, Math.floor(420 / wordLength || 44)));
 
   function changeDifficulty(next: Difficulty) {
     setDifficulty(next);
@@ -78,11 +95,11 @@ export default function WordleBuilder() {
         </p>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
         {/* ------------------------------------------------------------ */}
         {/* Settings                                                     */}
         {/* ------------------------------------------------------------ */}
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <fieldset className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
             <legend className="px-1 text-sm font-semibold">Word source</legend>
 
@@ -226,17 +243,27 @@ export default function WordleBuilder() {
           {/* Summary + generate */}
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
             <h3 className="mb-2 text-sm font-semibold">Summary</h3>
-            <dl className="grid grid-cols-2 gap-y-1 text-sm text-[var(--text-muted)]">
-              <dt>Phoneme word</dt>
-              <dd className="ipa text-[var(--text)]">
-                {phonemes.length ? phonemes.join(" ") : "—"}
-              </dd>
-              <dt>English word</dt>
-              <dd className="text-[var(--text)]">{english || "—"}</dd>
-              <dt>Word length</dt>
-              <dd className="text-[var(--text)]">{wordLength} phonemes</dd>
-              <dt>Guesses</dt>
-              <dd className="text-[var(--text)]">{maxGuesses}</dd>
+            <dl className="flex flex-col gap-2 text-sm text-[var(--text-muted)]">
+              <div className="flex flex-wrap items-baseline gap-x-2">
+                <dt className="w-28 shrink-0">Phoneme word</dt>
+                <dd className="ipa min-w-0 break-words text-[var(--text)]">
+                  {phonemes.length ? phonemes.join(" ") : "—"}
+                </dd>
+              </div>
+              <div className="flex flex-wrap items-baseline gap-x-2">
+                <dt className="w-28 shrink-0">English word</dt>
+                <dd className="min-w-0 break-words text-[var(--text)]">
+                  {english || "—"}
+                </dd>
+              </div>
+              <div className="flex flex-wrap items-baseline gap-x-2">
+                <dt className="w-28 shrink-0">Word length</dt>
+                <dd className="text-[var(--text)]">{wordLength} phonemes</dd>
+              </div>
+              <div className="flex flex-wrap items-baseline gap-x-2">
+                <dt className="w-28 shrink-0">Guesses</dt>
+                <dd className="text-[var(--text)]">{maxGuesses}</dd>
+              </div>
             </dl>
 
             <button
@@ -258,7 +285,7 @@ export default function WordleBuilder() {
         {/* ------------------------------------------------------------ */}
         {/* Preview                                                      */}
         {/* ------------------------------------------------------------ */}
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <section aria-labelledby="preview-heading">
             <h3 id="preview-heading" className="mb-3 text-sm font-semibold">
               Preview
@@ -269,13 +296,14 @@ export default function WordleBuilder() {
                 The student&apos;s grid will appear here.
               </p>
             ) : (
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 overflow-x-auto pb-1">
                 {Array.from({ length: maxGuesses }).map((_, row) => (
                   <div key={row} className="flex gap-1.5">
                     {Array.from({ length: wordLength }).map((_, col) => (
                       <div
                         key={col}
-                        className="h-11 w-11 rounded border-2 border-[var(--border)] bg-[var(--surface)]"
+                        style={{ width: tileSize, height: tileSize }}
+                        className="shrink-0 rounded border-2 border-[var(--border)] bg-[var(--surface)]"
                       />
                     ))}
                   </div>
@@ -306,14 +334,23 @@ export default function WordleBuilder() {
             </h3>
             <PhonemeKeyboard
               showHints={showHints}
-              disabled={mode !== "custom"}
+              disabled={mode !== "custom" || atPhonemeLimit}
               onSelect={(symbol: string) =>
-                setCustomPhonemes((current) => [...current, symbol])
+                setCustomPhonemes((current) =>
+                  current.length >= MAX_PHONEMES
+                    ? current
+                    : [...current, symbol]
+                )
               }
             />
-            {mode !== "custom" && (
+            {mode !== "custom" ? (
               <p className="mt-2 max-w-xs text-xs text-[var(--text-muted)]">
                 Switch to &quot;Build a custom word&quot; to use the keyboard.
+              </p>
+            ) : (
+              <p className="mt-2 max-w-xs text-xs text-[var(--text-muted)]" role="status">
+                {customPhonemes.length} of {MAX_PHONEMES} phonemes used
+                {atPhonemeLimit ? " — limit reached." : "."}
               </p>
             )}
           </section>
