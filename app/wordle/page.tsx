@@ -14,7 +14,7 @@
 
 import { useState } from "react";
 import PhonemeKeyboard from "@/components/PhonemeKeyboard";
-import { WORDS_BY_LENGTH, hintFor } from "@/lib/phonemes";
+import { WORDS_BY_LENGTH, PHONEME_HINTS, hintFor } from "@/lib/phonemes";
 import { generateWordleHtml } from "@/lib/generateWordle";
 import { downloadFile, safeFilename } from "@/lib/download";
 
@@ -312,19 +312,42 @@ export default function WordleBuilder() {
             )}
 
             {phonemes.length > 0 && (
-              <ol className="mt-4 flex flex-wrap gap-2">
-                {phonemes.map((symbol, index) => (
-                  <li
-                    key={`${symbol}-${index}`}
-                    className="flex min-w-14 flex-col items-center rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5"
+              <>
+                {/* Compact chips: the symbol plus its short English label.
+                    The full "as in" wording is available on hover here and on
+                    the keyboard keys, so it is not repeated on every chip. */}
+                <ol className="mt-4 flex flex-wrap gap-1.5">
+                  {phonemes.map((symbol, index) => (
+                    <li
+                      key={`${symbol}-${index}`}
+                      title={hintFor(symbol)}
+                      className="flex w-11 flex-col items-center rounded border border-[var(--border)] bg-[var(--surface)] py-1"
+                    >
+                      <span className="ipa text-base leading-tight">
+                        {symbol}
+                      </span>
+                      <span className="text-[10px] leading-tight text-[var(--text-muted)]">
+                        {PHONEME_HINTS[symbol]?.label ?? ""}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+
+                {mode === "custom" && (
+                  <p
+                    role="status"
+                    className={`mt-3 rounded border px-3 py-2 text-xs ${
+                      atPhonemeLimit
+                        ? "border-[var(--present)] bg-[var(--surface)] text-[var(--text)]"
+                        : "border-transparent text-[var(--text-muted)]"
+                    }`}
                   >
-                    <span className="ipa text-lg">{symbol}</span>
-                    <span className="text-[10px] text-[var(--text-muted)]">
-                      {hintFor(symbol)}
-                    </span>
-                  </li>
-                ))}
-              </ol>
+                    {atPhonemeLimit
+                      ? `Maximum length reached — ${MAX_PHONEMES} phonemes. Press Backspace to change the word or Clear to reset it.`
+                      : `${customPhonemes.length} of ${MAX_PHONEMES} phonemes.`}
+                  </p>
+                )}
+              </>
             )}
           </section>
 
@@ -343,14 +366,14 @@ export default function WordleBuilder() {
                 )
               }
             />
-            {mode !== "custom" ? (
+            {mode !== "custom" && (
               <p className="mt-2 max-w-xs text-xs text-[var(--text-muted)]">
                 Switch to &quot;Build a custom word&quot; to use the keyboard.
               </p>
-            ) : (
-              <p className="mt-2 max-w-xs text-xs text-[var(--text-muted)]" role="status">
-                {customPhonemes.length} of {MAX_PHONEMES} phonemes used
-                {atPhonemeLimit ? " — limit reached." : "."}
+            )}
+            {atPhonemeLimit && (
+              <p className="mt-2 max-w-xs text-xs text-[var(--text-muted)]">
+                Keyboard disabled — maximum word length reached.
               </p>
             )}
           </section>
