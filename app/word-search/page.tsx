@@ -34,7 +34,7 @@ const LEVEL_LABELS: Record<Level, string> = {
   hard: "Hard — all eight directions, including backwards",
 };
 
-const DEFAULT_WORDS = ["thin", "ship", "frog", "train", "stamp"];
+const DEFAULT_WORDS = [""];
 const MAX_WORDS = 8;
 
 export default function WordSearchBuilder() {
