@@ -157,3 +157,28 @@ html[data-text-size="large"] {
 [data-theme="dark"] .ipa {
   letter-spacing: 0.01em;
 }
+
+/* ---------------------------------------------------------------------------
+   Button feedback.
+
+   Tailwind v4 no longer sets cursor: pointer on buttons, which makes them
+   feel unclickable. These rules give every button a pointer and a hover
+   state in one place, rather than repeating the classes on each button.
+
+   Secondary buttons are the bordered ones (Tailwind's .border class), so
+   they get a soft background. Filled buttons have no border class, so they
+   dim slightly instead — a background change would hide their fill colour.
+   --------------------------------------------------------------------------- */
+
+button:not(:disabled) {
+  cursor: pointer;
+  transition: background-color 150ms ease, opacity 150ms ease;
+}
+
+button:not(:disabled).border:hover {
+  background-color: var(--accent-soft);
+}
+
+button:not(:disabled):not(.border):hover {
+  opacity: 0.9;
+}
