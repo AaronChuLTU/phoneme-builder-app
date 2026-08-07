@@ -17,6 +17,7 @@ import PhonemeKeyboard from "@/components/PhonemeKeyboard";
 import { WORDS_BY_LENGTH, PHONEME_HINTS, hintFor } from "@/lib/phonemes";
 import { generateWordleHtml } from "@/lib/generateWordle";
 import { downloadFile, safeFilename } from "@/lib/download";
+import PageHeader from "@/components/PageHeader";
 
 type Difficulty = 3 | 4 | 5;
 type Mode = "corpus" | "custom";
@@ -87,13 +88,12 @@ export default function WordleBuilder() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h2 className="text-2xl font-bold">Wordle Builder</h2>
-        <p className="text-[var(--text-muted)]">
-          Configure the activity, check the preview, then download it as a
-          single HTML file students can open in any browser.
-        </p>
-      </div>
+      <PageHeader title="Wordle Builder">
+        Configure the activity, check the preview, then download it as a
+        single HTML file students can open in any browser.
+      </PageHeader>
+      
+      
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
         {/* ------------------------------------------------------------ */}

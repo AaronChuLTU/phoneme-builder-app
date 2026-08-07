@@ -23,6 +23,7 @@ import { ALL_WORDS } from "@/lib/phonemes";
 import { buildPuzzle, DIRECTION_SETS } from "@/lib/wordSearch";
 import { generateWordSearchHtml } from "@/lib/generateWordSearch";
 import { downloadFile, safeFilename } from "@/lib/download";
+import PageHeader from "@/components/PageHeader";
 
 type Level = "easy" | "medium" | "hard";
 type Entry = { word: string; phonemes: string[] };
@@ -97,13 +98,10 @@ export default function WordSearchBuilder() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h2 className="text-2xl font-bold">Word Search Builder</h2>
-        <p className="max-w-2xl text-[var(--text-muted)]">
-          Choose up to {MAX_WORDS} phoneme words from the preset word list (custom word generator coming soon), check the preview, then
-          download the puzzle as a single HTML file.
-        </p>
-      </div>
+      <PageHeader title="Word Search Builder">
+        Choose up to {MAX_WORDS} phoneme words from the preset word list (custom word generator coming soon), check the preview, then
+        download the puzzle as a single HTML file.
+      </PageHeader>
 
       <div className="grid gap-12 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
         {/* ---------------------------------------------------------- */}

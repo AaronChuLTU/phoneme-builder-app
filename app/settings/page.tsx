@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useState } from "react";
+import PageHeader from "@/components/PageHeader";
 import {
   THEME_COOKIE,
   TEXT_SIZE_COOKIE,
@@ -77,15 +78,12 @@ export default function Settings() {
 
   return (
     <div className="flex max-w-2xl flex-col gap-8">
-      <div>
-        <h2 className="text-2xl font-bold">Settings</h2>
-        <p className="text-[var(--text-muted)]">
-          These preferences are saved in your browser as cookies and apply to
-          the builder interface. They do not affect the activities you
-          download — those always use their own styling so they look the same
-          on any student&apos;s computer.
-        </p>
-      </div>
+      <PageHeader title="Settings">
+        These preferences are saved in your browser as cookies and apply to
+        the builder interface. They do not affect the activities you
+        download — those always use their own styling so they look the same
+        on any student&apos;s computer.
+      </PageHeader>
 
       <fieldset className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
         <legend className="px-1 text-sm font-semibold">Theme</legend>

@@ -2,16 +2,17 @@
  * About — required to state that Assessment 1 is frontend only, describe both
  * tools, and show your name, student number and a walkthrough video.
  */
+
+import PageHeader from "@/components/PageHeader";
+
 export default function About() {
   return (
     <div className="flex max-w-2xl flex-col gap-6">
-      <h2 className="text-2xl font-bold">About this project</h2>
-
-      <p className="text-[var(--text-muted)]">
+      <PageHeader title="About this project">
         The Phoneme Activity Builder lets Speech Pathology teachers create
         classroom activities built around phoneme symbols rather than standard
         spelling. It is a tool for teachers and students, not for clients.
-      </p>
+      </PageHeader>
 
       <section>
         <h3 className="mb-1 text-lg font-semibold">Scope of Assessment 1</h3>

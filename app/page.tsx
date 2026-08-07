@@ -3,6 +3,7 @@
  */
 
 import Link from "next/link";
+import PageHeader from "@/components/PageHeader";
 
 const TOOLS = [
   {
@@ -22,19 +23,14 @@ const TOOLS = [
 export default function Home() {
   return (
     <div className="flex flex-col gap-10">
-      <section className="flex flex-col gap-3">
-        <h2 className="text-2xl font-bold">
-          Build phoneme activities for the classroom
-        </h2>
-        <p className="max-w-2xl text-[var(--text-muted)]">
-          This tool helps Speech Pathology teachers create phoneme-based
-          classroom activities. Activities are built around phoneme symbols
-          rather than standard spelling, so students work with the sounds of a
-          word instead of its letters. Each activity downloads as a single HTML
-          file that runs in any web browser, with no internet connection or
-          software required.
-        </p>
-      </section>
+      <PageHeader title="Build phoneme activities for the classroom">
+        This tool helps Speech Pathology teachers create phoneme-based
+        classroom activities. Activities are built around phoneme symbols
+        rather than standard spelling, so students work with the sounds of a
+        word instead of its letters. Each activity downloads as a single HTML
+        file that runs in any web browser, with no internet connection or
+        software required.
+      </PageHeader>
 
       <section aria-labelledby="tools-heading" className="flex flex-col gap-4">
         <h2 id="tools-heading" className="text-xl font-semibold">
