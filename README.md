@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Phoneme Activity Builder
 
-## Getting Started
+A web app that lets Speech Pathology teachers build phoneme-based classroom
+activities and export them as standalone HTML files students can open in any
+browser.
 
-First, run the development server:
+**Aaron Truong Chu** · Student number 22298193
+La Trobe University · Assessment 1 — Frontend Builder
+
+## What it does
+
+Teachers configure an activity, preview it, and download a single `.html`
+file. That file contains everything — markup, styling and game logic — so it
+runs offline with nothing installed.
+
+- **Wordle** — each tile is one phoneme instead of one letter. Standard
+  green / yellow / grey feedback, English spelling revealed on a win.
+- **Word Search** — each grid cell holds one phoneme. Selectable by drag,
+  by two clicks, or by keyboard.
+
+Built around the HCE phoneme inventory supplied with the assessment brief.
+
+## Running it
+
+Requires Node.js 20+.
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open <http://localhost:3000>.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Pages
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Route          | Purpose                                          |
+| -------------- | ------------------------------------------------ |
+| `/`            | Introduction and links to both builders          |
+| `/wordle`      | Build and download a phoneme Wordle              |
+| `/word-search` | Build and download a phoneme word search         |
+| `/about`       | Scope, author details, walkthrough video         |
+| `/settings`    | Theme and text size, stored in cookies           |
 
-## Learn More
+## Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/         one folder per route, plus the shared layout
+components/  Header, NavBar, Footer, PageHeader, PhonemeKeyboard, ThemeSync
+lib/         phoneme data, puzzle generation, HTML generators, preferences
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Key design decisions
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**The builder is not the game.** `generateWordle.js` and
+`generateWordSearch.js` are pure functions that take settings and return a
+complete HTML document as a string. Students may be on locked-down school
+machines, so the output carries its own CSS and JavaScript inline and makes no
+network requests.
 
-## Deploy on Vercel
+**Shared, stateless components.** `PhonemeKeyboard` holds no state — both
+builders use it with different props. `PageHeader` exists so page title
+spacing is defined once rather than repeated across five pages.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Seeded puzzle generation.** `buildPuzzle()` takes a seed instead of calling
+`Math.random()`, so the preview and the downloaded file are always the same
+puzzle.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Preferences in cookies, not localStorage.** The server can read cookies and
+render the correct theme in the first response, avoiding a visible flash of
+the wrong theme on every page load.
+
+## Known limitations
+
+- Wordle feedback uses colour alone; a shape indicator would be the next
+  accessibility improvement
+- The word search uses a fixed word list, as the brief permits at this stage
+- Custom Wordle words are capped at eight phonemes
+- Nothing is saved between sessions — persistence arrives in Assessment 2
+
+## AI acknowledgement
+
+Generative AI (Claude) was used during development, mainly for scaffolding
+component code, debugging, and discussing design decisions. All AI-assisted
+work was reviewed, tested and integrated by me. A completed AI acknowledgement
+form is submitted with this assessment.
+
+## Tech stack
+
+Next.js (App Router) · React · Tailwind CSS · TypeScript
