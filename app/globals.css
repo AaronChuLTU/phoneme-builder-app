@@ -135,3 +135,25 @@ body {
   bottom: auto;
   top: calc(100% + 6px);
 }
+
+/* ---------------------------------------------------------------------------
+   Text size preference.
+
+   Setting the root font size rather than resizing individual elements means
+   every rem-based size in the app scales together — headings, padding, gaps —
+   so the layout keeps its proportions instead of text overflowing its boxes.
+   --------------------------------------------------------------------------- */
+
+html[data-text-size="large"] {
+  font-size: 18px; /* browser default is 16px */
+}
+
+/* ---------------------------------------------------------------------------
+   Dark theme adjustment for the phoneme keyboard.
+   The hint labels sit at low opacity, which is fine on white but too faint on
+   a dark surface, so lift them slightly.
+   --------------------------------------------------------------------------- */
+
+[data-theme="dark"] .ipa {
+  letter-spacing: 0.01em;
+}

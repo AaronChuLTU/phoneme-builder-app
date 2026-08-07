@@ -327,7 +327,7 @@ export default function WordleBuilder() {
                         {symbol}
                       </span>
                       <span className="text-[10px] leading-tight text-[var(--text-muted)]">
-                        {PHONEME_HINTS[symbol]?.label ?? ""}
+                        {PHONEME_HINTS[symbol as keyof typeof PHONEME_HINTS]?.label ?? ""}
                       </span>
                     </li>
                   ))}
