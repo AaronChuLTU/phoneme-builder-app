@@ -17,7 +17,6 @@ import PhonemeKeyboard from "@/components/PhonemeKeyboard";
 import { WORDS_BY_LENGTH, PHONEME_HINTS, hintFor } from "@/lib/phonemes";
 import { generateWordleHtml } from "@/lib/generateWordle";
 import { downloadFile, safeFilename } from "@/lib/download";
-import PageHeader from "@/components/PageHeader";
 
 type Difficulty = 3 | 4 | 5;
 type Mode = "corpus" | "custom";
@@ -47,6 +46,7 @@ export default function WordleBuilder() {
   const [customPhonemes, setCustomPhonemes] = useState<string[]>([]);
   const [customEnglish, setCustomEnglish] = useState("");
 
+  const [activityName, setActivityName] = useState("");
   const [maxGuesses, setMaxGuesses] = useState(6);
   const [showHints, setShowHints] = useState(true);
 
@@ -73,9 +73,13 @@ export default function WordleBuilder() {
 
   function handleGenerate() {
     if (!canGenerate) return;
-    const title = english
-      ? `Phoneme Wordle: ${english}`
-      : "Phoneme Wordle";
+
+    // The title appears on the page, in the browser tab and in the filename,
+    // so it must never contain the answer. An earlier version used the
+    // English word here, which revealed the solution before the student had
+    // guessed anything. The teacher names the activity instead.
+    const title = activityName.trim() || "Phoneme Wordle";
+
     const html = generateWordleHtml({
       phonemes,
       english,
@@ -83,17 +87,18 @@ export default function WordleBuilder() {
       showHints,
       title,
     });
-    downloadFile(safeFilename(`wordle-${english || "activity"}`), html);
+    downloadFile(safeFilename(title), html);
   }
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title="Wordle Builder">
-        Configure the activity, check the preview, then download it as a
-        single HTML file students can open in any browser.
-      </PageHeader>
-      
-      
+      <div>
+        <h2 className="text-2xl font-bold">Wordle Builder</h2>
+        <p className="text-[var(--text-muted)]">
+          Configure the activity, check the preview, then download it as a
+          single HTML file students can open in any browser.
+        </p>
+      </div>
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
         {/* ------------------------------------------------------------ */}
@@ -214,6 +219,21 @@ export default function WordleBuilder() {
 
             <div className="flex flex-col gap-4">
               <label className="flex flex-col gap-1 text-sm">
+                <span className="font-medium">Activity name</span>
+                <input
+                  type="text"
+                  value={activityName}
+                  onChange={(e) => setActivityName(e.target.value)}
+                  placeholder="Phoneme Wordle"
+                  className="w-full rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5"
+                />
+                <span className="text-xs text-[var(--text-muted)]">
+                  Shown on the activity and used for the filename. Avoid
+                  putting the answer here &mdash; students will see it.
+                </span>
+              </label>
+
+              <label className="flex flex-col gap-1 text-sm">
                 <span className="font-medium">Number of guesses</span>
                 <input
                   type="number"
@@ -263,6 +283,12 @@ export default function WordleBuilder() {
               <div className="flex flex-wrap items-baseline gap-x-2">
                 <dt className="w-28 shrink-0">Guesses</dt>
                 <dd className="text-[var(--text)]">{maxGuesses}</dd>
+              </div>
+              <div className="flex flex-wrap items-baseline gap-x-2">
+                <dt className="w-28 shrink-0">Activity name</dt>
+                <dd className="min-w-0 break-words text-[var(--text)]">
+                  {activityName.trim() || "Phoneme Wordle"}
+                </dd>
               </div>
             </dl>
 
@@ -327,7 +353,7 @@ export default function WordleBuilder() {
                         {symbol}
                       </span>
                       <span className="text-[10px] leading-tight text-[var(--text-muted)]">
-                        {PHONEME_HINTS[symbol as keyof typeof PHONEME_HINTS]?.label ?? ""}
+                        {PHONEME_HINTS[symbol]?.label ?? ""}
                       </span>
                     </li>
                   ))}
@@ -343,7 +369,7 @@ export default function WordleBuilder() {
                     }`}
                   >
                     {atPhonemeLimit
-                      ? `Maximum length reached — ${MAX_PHONEMES} phonemes. Press Backspace to change the word or Clear to reset it.`
+                      ? `Maximum length reached — ${MAX_PHONEMES} phonemes. Press Backspace to change the word.`
                       : `${customPhonemes.length} of ${MAX_PHONEMES} phonemes.`}
                   </p>
                 )}
