@@ -9,9 +9,10 @@ export default function About() {
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <PageHeader title="About this project">
-        The Phoneme Activity Builder lets Speech Pathology teachers create
-        classroom activities built around phoneme symbols rather than standard
-        spelling. It is a tool for teachers and students, not for clients.
+        The Phoneme Activity Builder lets Speech Pathology teachers create 
+        practice activities in phonemic transcription,built around phoneme symbols 
+        rather than standard spelling. It is a tool for teachers and learners, 
+        not for clients.
       </PageHeader>
 
       <section>
@@ -30,16 +31,17 @@ export default function About() {
           <div>
             <dt className="font-medium text-[var(--text)]">Wordle</dt>
             <dd>
-              A guessing game where each tile is one phoneme instead of one
-              letter. Hover hints show the English letter equivalence, and the
-              English spelling is revealed once the word is solved.
+              A guessing game where each tile is one phoneme instead of one letter. 
+              Hover hints show the English letter equivalence, and the English spelling
+              is revealed once the word is solved.
             </dd>
           </div>
           <div>
             <dt className="font-medium text-[var(--text)]">Word Search</dt>
             <dd>
-              A grid puzzle where students find phoneme sequences. Each cell
-              holds one phoneme, so students read by sound rather than letter.
+              A grid puzzle where learners locate phoneme sequences among similar-looking
+              distractors. Each cell holds one phoneme, so the puzzle is read by sound rather
+              than by letter.
             </dd>
           </div>
         </dl>
