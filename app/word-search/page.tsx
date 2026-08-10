@@ -69,6 +69,7 @@ export default function WordSearchBuilder() {
   const [showHints, setShowHints] = useState(true);
   const [allowAnswers, setAllowAnswers] = useState(true);
   const [seed, setSeed] = useState(42);
+  const [showAnswers, setShowAnswers] = useState(false);
 
   const words = useMemo(
     () =>
@@ -92,6 +93,21 @@ export default function WordSearchBuilder() {
       }),
     [words, size, level, seed]
   );
+
+  /**
+   * Which grid cells belong to a placed word, keyed "row:col".
+   * Built once per puzzle rather than searched per cell, so revealing answers
+   * on a 16x16 grid stays a single pass rather than 256 lookups.
+   */
+  const answerCells = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const placement of puzzle.placements) {
+      for (const cell of placement.cells) {
+        map.set(`${cell.row}:${cell.col}`, placement.word);
+      }
+    }
+    return map;
+  }, [puzzle]);
 
   const longest = words.reduce((max, w) => Math.max(max, w.phonemes.length), 0);
   const tooSmall = longest > size;
@@ -339,7 +355,23 @@ export default function WordSearchBuilder() {
         {/* Preview                                                    */}
         {/* ---------------------------------------------------------- */}
         <div className="flex min-w-0 flex-col gap-4">
-          <h3 className="text-sm font-semibold">Preview</h3>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold">Preview</h3>
+            {words.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowAnswers((current) => !current)}
+                aria-pressed={showAnswers}
+                className={`rounded border px-3 py-1.5 text-sm transition-colors ${
+                  showAnswers
+                    ? "border-[var(--correct)] bg-[var(--correct)] text-white"
+                    : "border-[var(--border)] hover:bg-[var(--accent-soft)]"
+                }`}
+              >
+                {showAnswers ? "Hide answers" : "Show answers"}
+              </button>
+            )}
+          </div>
 
           {words.length === 0 ? (
             <p className="max-w-md rounded-lg border border-dashed border-[var(--border)] p-6 text-sm text-[var(--text-muted)]">
@@ -354,16 +386,35 @@ export default function WordSearchBuilder() {
                   maxWidth: `${size * 34}px`,
                 }}
                 role="img"
-                aria-label={`Preview of a ${size} by ${size} phoneme word search`}
+                aria-label={
+                  showAnswers
+                    ? `Preview of a ${size} by ${size} phoneme word search with answers highlighted`
+                    : `Preview of a ${size} by ${size} phoneme word search`
+                }
               >
-                {puzzle.grid.flat().map((symbol, index) => (
-                  <span
-                    key={index}
-                    className="ipa flex aspect-square items-center justify-center rounded border border-[var(--border)] bg-[var(--surface)] text-xs"
-                  >
-                    {symbol}
-                  </span>
-                ))}
+                {puzzle.grid.map((row, rowIndex) =>
+                  row.map((symbol, colIndex) => {
+                    const inAnswer =
+                      showAnswers && answerCells.has(`${rowIndex}:${colIndex}`);
+                    return (
+                      <span
+                        key={`${rowIndex}:${colIndex}`}
+                        title={
+                          inAnswer
+                            ? answerCells.get(`${rowIndex}:${colIndex}`)
+                            : undefined
+                        }
+                        className={`ipa flex aspect-square items-center justify-center rounded border text-xs transition-colors ${
+                          inAnswer
+                            ? "border-[var(--correct)] bg-[var(--correct)] font-semibold text-white"
+                            : "border-[var(--border)] bg-[var(--surface)]"
+                        }`}
+                      >
+                        {symbol}
+                      </span>
+                    );
+                  })
+                )}
               </div>
 
               <h4 className="mb-2 mt-5 text-sm font-semibold">Words to find</h4>
@@ -385,6 +436,9 @@ export default function WordSearchBuilder() {
               <p className="mt-2 max-w-md text-xs text-[var(--text-muted)]">
                 Empty cells are filled with phonemes taken from these words, so
                 no sound stands out as an obvious answer.
+                {showAnswers
+                  ? " Highlighted cells are for checking only — they are not marked in the downloaded puzzle."
+                  : ""}
               </p>
             </>
           )}
