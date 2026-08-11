@@ -49,7 +49,6 @@ export default function About() {
 
       <section>
         <h3 className="mb-1 text-lg font-semibold">Author</h3>
-        {/* TODO: replace with your details */}
         <p className="text-[var(--text-muted)]">
           Aaron Truong Chu &middot; Student Number 22298193
         </p>
