@@ -57,15 +57,12 @@ export default function About() {
 
       <section>
         <h3 className="mb-2 text-lg font-semibold">Walkthrough video</h3>
-        {/* TODO: paste your unlisted YouTube embed URL into src */}
-        <div className="aspect-video w-full overflow-hidden rounded-lg border border-[var(--border)]">
-          <iframe
-            className="h-full w-full"
-            //src=""
-            title="Walkthrough of the Phoneme Activity Builder"
-            allowFullScreen
-          />
-        </div>
+        <video
+          className="w-full rounded-lg border border-[var(--border)]"
+          src="/walkthrough.mp4"
+          controls
+          preload="metadata"
+        />
       </section>
     </div>
   );
