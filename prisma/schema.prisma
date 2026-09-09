@@ -1,0 +1,126 @@
+// Prisma schema for the Phoneme Activity Builder.
+//
+// Design notes:
+//
+//  - Phonemes are stored as rows in their own table and linked to words
+//    through WordPhoneme, which carries an explicit `position`. They are
+//    never stored as a single string. Symbols such as tʃ, dʒ, æɪ and ɐː
+//    occupy two character spaces, so splitting a string by character would
+//    corrupt them.
+//
+//  - SQLite has no native enum type, so `Activity.type` and
+//    `Activity.difficulty` are stored as String and validated in application
+//    code before any write. Moving to PostgreSQL later would allow real
+//    enums with no other change to the model.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// A single phoneme symbol from the HCE inventory, with the English
+/// equivalence shown as a hint and its position on the on-screen keyboard.
+/// Each symbol exists exactly once, so a hint is defined in one place only.
+model Phoneme {
+  id      Int    @id @default(autoincrement())
+  symbol  String @unique // e.g. "θ"
+  label   String // e.g. "TH"
+  example String // e.g. "thin"
+
+  // Position in the keyboard grid, so the layout is data rather than code.
+  rowIndex Int
+  colIndex Int
+
+  usages WordPhoneme[]
+
+  @@index([rowIndex, colIndex])
+}
+
+/// A named collection of words a teacher can build activities from.
+model WordList {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+
+  words      Word[]
+  activities Activity[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// A single word, stored with its English spelling. Its phoneme sequence
+/// lives in WordPhoneme rather than in a column here.
+model Word {
+  id      Int    @id @default(autoincrement())
+  english String
+
+  wordListId Int
+  wordList   WordList @relation(fields: [wordListId], references: [id], onDelete: Cascade)
+
+  phonemes WordPhoneme[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // The same word twice in one list would be a duplicate entry in a puzzle.
+  @@unique([wordListId, english])
+}
+
+/// The ordered link between a word and its phonemes.
+///
+/// This table is what makes multi-character phonemes safe: "thin" becomes
+/// three rows — (θ, 0), (ɪ, 1), (n, 2) — so no string ever has to be split
+/// to recover the sounds.
+model WordPhoneme {
+  id Int @id @default(autoincrement())
+
+  wordId Int
+  word   Word @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  phonemeId Int
+  phoneme   Phoneme @relation(fields: [phonemeId], references: [id], onDelete: Restrict)
+
+  /// Zero-based index of this phoneme within the word.
+  position Int
+
+  // A word cannot have two phonemes at the same position.
+  @@unique([wordId, position])
+  @@index([phonemeId])
+}
+
+/// A saved activity configuration. One word list can drive many activities —
+/// the same words as an easy Wordle and as a hard word search, for example.
+model Activity {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  /// "WORDLE" or "WORD_SEARCH". Validated in application code; see note above.
+  type String
+
+  wordListId Int
+  wordList   WordList @relation(fields: [wordListId], references: [id], onDelete: Cascade)
+
+  // Shared settings
+  showHints Boolean @default(true)
+
+  // Wordle settings
+  maxGuesses Int @default(6)
+
+  // Word search settings
+  gridSize     Int     @default(10)
+  /// "easy", "medium" or "hard" — controls which directions words may run.
+  difficulty   String  @default("medium")
+  allowAnswers Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([wordListId])
+}
