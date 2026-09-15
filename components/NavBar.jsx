@@ -25,6 +25,7 @@ const LINKS = [
   { href: "/", label: "Home" },
   { href: "/wordle", label: "Wordle" },
   { href: "/word-search", label: "Word Search" },
+  { href: "/manage/activities", label: "Activities" },
   { href: "/manage", label: "Manage" },
   { href: "/about", label: "About" },
   { href: "/settings", label: "Settings" },
