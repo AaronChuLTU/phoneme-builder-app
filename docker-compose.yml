@@ -1,0 +1,36 @@
+# docker-compose.yml
+#
+# Runs the app as a single service, as the brief asks. Compose is used only
+# for convenience — one command instead of a long `docker run` with several
+# flags — not for multiple containers; SQLite needs no separate database
+# service.
+#
+# Usage:
+#   docker compose up --build     start (rebuilding if the source changed)
+#   docker compose down           stop
+#   docker compose down -v        stop AND delete the persisted database
+#
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      # Absolute path inside the container's filesystem — nothing to do
+      # with the host machine or the .env file used for local development.
+      # See the Dockerfile note on why this is /app/data rather than
+      # /app/prisma: /app/prisma holds the schema and migrations baked into
+      # the image, and a volume mounted there would shadow them.
+      DATABASE_URL: "file:/app/data/dev.db"
+      NODE_ENV: production
+    volumes:
+      # Named volume: the database survives `docker compose down` and a
+      # container recreation, but starts empty the very first time — which
+      # is exactly when the entrypoint's seed step should run.
+      - phoneme-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  phoneme-data:

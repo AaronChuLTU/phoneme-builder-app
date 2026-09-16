@@ -12,10 +12,19 @@
 //    `Activity.difficulty` are stored as String and validated in application
 //    code before any write. Moving to PostgreSQL later would allow real
 //    enums with no other change to the model.
+//
+//  - binaryTargets lists BOTH the platform this was developed on and the
+//    platform Docker runs on. Prisma's query engine is a native binary
+//    compiled per OS; "native" alone only covers whichever machine runs
+//    `prisma generate`. Without "linux-musl-openssl-3.0.x" here, a client
+//    generated on Windows has no engine that runs inside the Alpine Linux
+//    base image used by the Dockerfile, and every query fails at container
+//    startup.
 
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider      = "prisma-client"
+  output        = "../lib/generated/prisma"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {

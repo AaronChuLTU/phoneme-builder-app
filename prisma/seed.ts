@@ -5,14 +5,21 @@
  *
  * Everything here came from lib/phonemes.js, which held it as hardcoded
  * arrays in Assessment 1. That file is now the seed source rather than the
- * runtime source: the app reads from the database, and this script is how the
- * database gets its starting content.
+ * runtime source: the app reads from the database, and this script is how
+ * the database gets its starting content.
  *
- * The script is idempotent — it clears the tables first, so it can be re-run
- * to return to a known state. Useful before recording a demo.
+ * IDEMPOTENT BY DEFAULT: if the database already contains a word list, the
+ * script logs a message and exits without touching anything. This matters
+ * because docker-entrypoint.sh runs this script on every container start —
+ * an unconditional wipe-and-reseed would silently erase any word a teacher
+ * had added or edited every time the container restarted.
  *
- * Run with:  npm run db:seed
+ * To force a full reset back to the seeded corpus (for example, to return
+ * to a known state before recording a demo), set FORCE_RESEED=1:
+ *
+ *   FORCE_RESEED=1 npm run db:seed
  */
+
 import "dotenv/config";
 import { PrismaClient } from "../lib/generated/prisma/client";
 import {
@@ -20,6 +27,20 @@ import {
   PHONEME_HINTS,
   ALL_WORDS,
 } from "../lib/phonemes.js";
+
+/**
+ * lib/phonemes.js is a plain .js file, so TypeScript infers PHONEME_HINTS as
+ * an object with exactly 43 known keys rather than "any string maps to a
+ * hint". `symbol` here is a plain string pulled out of KEYBOARD_ROWS, so
+ * TypeScript cannot prove it is one of those 43 keys and refuses the direct
+ * lookup. This helper does the same lookup through a signature that says
+ * "any string in, a hint or undefined out" — which is also just true.
+ */
+function lookupHint(symbol: string): { label: string; example: string } | undefined {
+  return (PHONEME_HINTS as Record<string, { label: string; example: string }>)[
+    symbol
+  ];
+}
 
 const prisma = new PrismaClient();
 
@@ -36,8 +57,6 @@ async function clearAll() {
 }
 
 async function seedPhonemes() {
-  // Map of symbol -> database id, so words can be linked without a query
-  // per phoneme.
   const idBySymbol = new Map<string, number>();
 
   for (let row = 0; row < KEYBOARD_ROWS.length; row++) {
@@ -46,7 +65,7 @@ async function seedPhonemes() {
       const symbol = cols[col];
       if (symbol === null) continue; // intentional gap in the layout
 
-      const hint = PHONEME_HINTS[symbol];
+      const hint = lookupHint(symbol);
       const created = await prisma.phoneme.create({
         data: {
           symbol,
@@ -76,9 +95,6 @@ async function seedWords(idBySymbol: Map<string, number>) {
   const skipped: string[] = [];
 
   for (const entry of ALL_WORDS) {
-    // Refuse to store a word whose phonemes are not all in the inventory.
-    // A word with an unknown symbol would be unguessable, because there
-    // would be no key on the keyboard to press.
     const unknown = entry.phonemes.filter(
       (symbol: string) => !idBySymbol.has(symbol)
     );
@@ -87,8 +103,6 @@ async function seedWords(idBySymbol: Map<string, number>) {
       continue;
     }
 
-    // Nested create: the Word and its WordPhoneme rows are written in one
-    // transaction, so a word can never exist without its phonemes.
     await prisma.word.create({
       data: {
         english: entry.word,
@@ -132,7 +146,20 @@ async function seedActivities(wordListId: number) {
 }
 
 async function main() {
-  console.log("Clearing existing data...");
+  const existingLists = await prisma.wordList.count();
+  const force = process.env.FORCE_RESEED === "1";
+
+  if (existingLists > 0 && !force) {
+    console.log(
+      `Database already has ${existingLists} word list(s) — skipping seed. ` +
+        `Set FORCE_RESEED=1 to wipe and reseed.`
+    );
+    return;
+  }
+
+  if (force) {
+    console.log("FORCE_RESEED=1 set — clearing existing data...");
+  }
   await clearAll();
 
   console.log("Seeding phonemes...");
@@ -150,7 +177,6 @@ async function main() {
   console.log("Seeding sample activities...");
   await seedActivities(list.id);
 
-  // Report what actually landed, rather than assuming it worked.
   const counts = {
     phonemes: await prisma.phoneme.count(),
     wordLists: await prisma.wordList.count(),
