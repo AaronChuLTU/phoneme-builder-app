@@ -120,7 +120,8 @@ model Activity {
 
   // Wordle settings
   maxGuesses Int @default(6)
-
+  wordLength Int?
+  
   // Word search settings
   gridSize     Int     @default(10)
   /// "easy", "medium" or "hard" — controls which directions words may run.

@@ -14,7 +14,8 @@
  * a database exists.
  *
  * Query parameters:
- *   ?wordId=N   pick a specific word for a Wordle (default: random from list)
+ *   ?wordId=N   pick a specific word for a Wordle (default: random, filtered
+ *               by the activity's wordLength if one is set)
  *   ?seed=N     fix the word search layout (default: random)
  */
 
@@ -25,6 +26,11 @@ import { generateWordSearchHtml } from "@/lib/generateWordSearch";
 import { buildPuzzle, DIRECTION_SETS } from "@/lib/wordSearch";
 
 type Params = { params: Promise<{ id: string }> };
+
+// Every generate should re-run against current data — a cached response
+// would defeat the entire point of generating from the database instead of
+// a fixed file.
+export const dynamic = "force-dynamic";
 
 /** Filename safe across operating systems. */
 function safeFilename(base: string) {
@@ -43,8 +49,23 @@ function htmlDownload(html: string, filename: string) {
     headers: {
       "Content-Type": "text/html; charset=utf-8",
       "Content-Disposition": `attachment; filename="${filename}"`,
+      // Without this, the browser can silently reuse a previous response for
+      // this exact URL instead of asking the server again — which looked
+      // like the random word/seed logic below was not running at all.
+      "Cache-Control": "no-store",
     },
   });
+}
+
+/** Fisher-Yates shuffle. Used so the word search draws a different set of
+ *  words each time rather than always the same first few from the list. */
+function shuffled<T>(items: T[]): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
 }
 
 export async function GET(request: Request, { params }: Params) {
@@ -78,13 +99,13 @@ export async function GET(request: Request, { params }: Params) {
     if (!activity) return notFound("Activity");
 
     // Turn the stored rows back into the plain shape the generators expect.
-    const words = activity.wordList.words.map((word) => ({
+    const allWords = activity.wordList.words.map((word) => ({
       id: word.id,
       word: word.english,
       phonemes: word.phonemes.map((wp) => wp.phoneme.symbol),
     }));
 
-    if (words.length === 0) {
+    if (allWords.length === 0) {
       return fail("That word list has no words to generate from", 400);
     }
 
@@ -92,15 +113,35 @@ export async function GET(request: Request, { params }: Params) {
     // Wordle
     // ---------------------------------------------------------------
     if (activity.type === "WORDLE") {
-      let chosen = words[Math.floor(Math.random() * words.length)];
+      // Filter to the activity's configured length, when one is set. This
+      // is what makes an activity named "three phonemes" actually only
+      // ever draw a three-phoneme word — previously nothing enforced that
+      // the name matched the content, and a four-phoneme word could be
+      // picked for an activity the teacher had labelled as three.
+      const pool =
+        activity.wordLength != null
+          ? allWords.filter((w) => w.phonemes.length === activity.wordLength)
+          : allWords;
+
+      if (pool.length === 0) {
+        return fail(
+          `No words in this list have ${activity.wordLength} phonemes`,
+          400
+        );
+      }
+
+      let chosen = pool[Math.floor(Math.random() * pool.length)];
 
       // A teacher can pin a specific word rather than taking a random one.
       const wordIdParam = search.get("wordId");
       if (wordIdParam !== null) {
         const wordId = parseId(wordIdParam);
-        const match = words.find((w) => w.id === wordId);
+        const match = pool.find((w) => w.id === wordId);
         if (!match) {
-          return fail("That word is not in this activity's word list", 400);
+          return fail(
+            "That word is not in this activity's word list and length filter",
+            400
+          );
         }
         chosen = match;
       }
@@ -122,8 +163,13 @@ export async function GET(request: Request, { params }: Params) {
     // Word search
     // ---------------------------------------------------------------
     if (activity.type === "WORD_SEARCH") {
-      // A grid can only hold so many words before it stops being solvable.
-      const selected = words.slice(0, 8);
+      // Previously this always took the first 8 words in list order, so the
+      // same activity generated the same word set every time regardless of
+      // how many words the list actually had. Shuffling first means each
+      // generate draws a different sample from the whole list, the same way
+      // the Assessment 1 builder let a teacher pick freely from the corpus
+      // rather than always seeing the same few words.
+      const selected = shuffled(allWords).slice(0, 8);
 
       const longest = selected.reduce(
         (max, w) => Math.max(max, w.phonemes.length),

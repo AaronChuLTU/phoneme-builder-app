@@ -90,14 +90,6 @@ export function validateWordList(body: unknown): Result<WordListInput> {
 
 export type WordInput = { english: string; phonemes: string[] };
 
-/**
- * @param body            the parsed request body
- * @param knownSymbols    every phoneme symbol currently in the database
- *
- * The inventory is passed in rather than queried here so this function stays
- * pure and testable, and so the route can fetch the inventory once for a
- * batch rather than once per word.
- */
 export function validateWord(
   body: unknown,
   knownSymbols: Set<string>
@@ -127,9 +119,6 @@ export function validateWord(
   } else {
     phonemes = body.phonemes as string[];
 
-    // The domain rule: a word made of symbols that are not on the keyboard
-    // cannot be answered, because there is no key to press. Reject it here
-    // rather than storing data that produces a broken activity later.
     const unknown = [...new Set(phonemes.filter((p) => !knownSymbols.has(p)))];
     if (unknown.length > 0) {
       errors.push(
@@ -152,6 +141,7 @@ export type ActivityInput = {
   wordListId: number;
   showHints: boolean;
   maxGuesses: number;
+  wordLength: number | null;
   gridSize: number;
   difficulty: (typeof DIFFICULTIES)[number];
   allowAnswers: boolean;
@@ -181,6 +171,30 @@ function intInRange(
   return value;
 }
 
+/**
+ * Like intInRange, but the field is genuinely optional — null means "no
+ * filter" rather than "use the default". Used for wordLength, where null
+ * means "any length" is a real, meaningful choice, not a missing value.
+ */
+function intOrNull(
+  value: unknown,
+  min: number,
+  max: number,
+  field: string,
+  errors: string[]
+): number | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    errors.push(`${field} must be a whole number or null`);
+    return null;
+  }
+  if (value < min || value > max) {
+    errors.push(`${field} must be between ${min} and ${max}`);
+    return null;
+  }
+  return value;
+}
+
 export function validateActivity(body: unknown): Result<ActivityInput> {
   if (!isObject(body)) return invalid("Request body must be a JSON object");
 
@@ -198,8 +212,6 @@ export function validateActivity(body: unknown): Result<ActivityInput> {
     errors.push(`type must be one of: ${ACTIVITY_TYPES.join(", ")}`);
   }
 
-  // SQLite has no enum type, so this string check is what keeps the column
-  // honest. On PostgreSQL the database would enforce it too.
   const difficultyRaw = body.difficulty ?? "medium";
   const difficulty = trimmedString(difficultyRaw);
   if (difficulty === null || !DIFFICULTIES.includes(difficulty as never)) {
@@ -224,6 +236,17 @@ export function validateActivity(body: unknown): Result<ActivityInput> {
     errors
   );
 
+  // THE FIX: this field previously did not exist here at all, so it was
+  // silently dropped from every create and update regardless of what the
+  // UI sent — the Word length dropdown had no effect on stored data.
+  const wordLength = intOrNull(
+    body.wordLength,
+    1,
+    LIMITS.phonemesMax,
+    "wordLength",
+    errors
+  );
+
   const gridSize = intInRange(
     body.gridSize,
     LIMITS.gridMin,
@@ -241,6 +264,7 @@ export function validateActivity(body: unknown): Result<ActivityInput> {
     wordListId,
     showHints: boolOr(body.showHints, true),
     maxGuesses,
+    wordLength,
     gridSize,
     difficulty: difficulty as (typeof DIFFICULTIES)[number],
     allowAnswers: boolOr(body.allowAnswers, true),

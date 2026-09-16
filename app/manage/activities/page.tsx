@@ -32,6 +32,7 @@ type Activity = {
   type: ActivityType;
   showHints: boolean;
   maxGuesses: number;
+  wordLength: number | null;
   gridSize: number;
   difficulty: Difficulty;
   allowAnswers: boolean;
@@ -44,6 +45,7 @@ const BLANK = {
   wordListId: 0,
   showHints: true,
   maxGuesses: 6,
+  wordLength: null as number | null,
   gridSize: 10,
   difficulty: "medium" as Difficulty,
   allowAnswers: true,
@@ -100,6 +102,7 @@ export default function ActivitiesPage() {
       wordListId: activity.wordList.id,
       showHints: activity.showHints,
       maxGuesses: activity.maxGuesses,
+      wordLength: activity.wordLength ?? null,
       gridSize: activity.gridSize,
       difficulty: activity.difficulty,
       allowAnswers: activity.allowAnswers,
@@ -249,19 +252,51 @@ export default function ActivitiesPage() {
             {/* Only the settings that apply to the chosen type are shown,
                 so a teacher is never asked for a grid size on a Wordle. */}
             {draft.type === "WORDLE" ? (
-              <label className="flex flex-col gap-1 text-sm">
-                <span className="font-medium">Number of guesses</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={draft.maxGuesses}
-                  onChange={(e) =>
-                    setDraft({ ...draft, maxGuesses: Number(e.target.value) })
-                  }
-                  className={`${field} w-24`}
-                />
-              </label>
+              <>
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Number of guesses</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={draft.maxGuesses}
+                    onChange={(e) =>
+                      setDraft({ ...draft, maxGuesses: Number(e.target.value) })
+                    }
+                    className={`${field} w-24`}
+                  />
+                </label>
+
+                {/* Filters which words this activity can draw from at
+                    generate time, by phoneme count. Without this, an
+                    activity named e.g. "three phonemes" could still pick a
+                    word of any length, since nothing tied the name to the
+                    actual content. */}
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">Word length</span>
+                  <select
+                    value={draft.wordLength ?? "any"}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        wordLength:
+                          e.target.value === "any"
+                            ? null
+                            : Number(e.target.value),
+                      })
+                    }
+                    className={field}
+                  >
+                    <option value="any">Any length</option>
+                    <option value="3">3 phonemes</option>
+                    <option value="4">4 phonemes</option>
+                    <option value="5">5 phonemes</option>
+                  </select>
+                  <span className="text-xs text-[var(--text-muted)]">
+                    Only words with this many phonemes will be picked.
+                  </span>
+                </label>
+              </>
             ) : (
               <>
                 <label className="flex flex-col gap-1 text-sm">
@@ -365,7 +400,11 @@ export default function ActivitiesPage() {
                     <p className="font-medium">{activity.name}</p>
                     <p className="text-xs text-[var(--text-muted)]">
                       {activity.type === "WORDLE"
-                        ? `Wordle · ${activity.maxGuesses} guesses`
+                        ? `Wordle · ${activity.maxGuesses} guesses${
+                            activity.wordLength
+                              ? ` · ${activity.wordLength} phonemes`
+                              : ""
+                          }`
                         : `Word Search · ${activity.gridSize}×${activity.gridSize} · ${activity.difficulty}`}
                       {" · "}
                       {activity.wordList.name} ({activity.wordList.wordCount}{" "}
