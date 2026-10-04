@@ -498,7 +498,12 @@ export default async function DashboardPage() {
                       {f.createdAt.slice(0, 16).replace("T", " ")}
                     </td>
                     <td className="py-1.5 pr-3">
-                      {f.activity ?? typeLabel(f.activityType)}
+                      {/* A null activity means it was deleted after this
+                          event — its history survives via onDelete: SetNull. */}
+                      {f.activity ??
+                        (f.activityType === "UNKNOWN"
+                          ? "Unknown activity"
+                          : `Deleted ${typeLabel(f.activityType)} activity`)}
                     </td>
                     <td className="py-1.5">{f.errorMessage ?? "—"}</td>
                   </tr>

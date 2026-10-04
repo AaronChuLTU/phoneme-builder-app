@@ -72,16 +72,26 @@ function visitLength(typicalSeconds: number): number {
   return Math.round(typicalSeconds * spread * 1000);
 }
 
-const FAILURE_REASONS = {
-  WORDLE: [
-    "No words in this list have 5 phonemes",
-    "That word list has no words to generate from",
-  ],
-  WORD_SEARCH: [
-    "The longest word has 5 phonemes but the grid is only 4 wide",
-    "No words could be placed in a grid that size",
-  ],
-};
+/**
+ * Simulated failures are attributed to activities that no longer exist,
+ * never to the current ones. The current activities are valid — a
+ * "three phonemes" Wordle over a list with 30 three-phoneme words cannot
+ * fail — so pinning failures to them would show reasons that contradict
+ * their own settings.
+ *
+ * Instead each failure looks like what really happens: a teacher created an
+ * activity with a bad setting, it failed a few times, and they deleted it.
+ * Because GenerationEvent uses onDelete: SetNull, that history survives the
+ * delete with its type and reason intact — which is the point of SetNull.
+ */
+const DELETED_ACTIVITY_FAILURES = [
+  { value: { activityType: "WORDLE", errorMessage: "No words in this list have 6 phonemes" }, weight: 4 },
+  { value: { activityType: "WORDLE", errorMessage: "That word list has no words to generate from" }, weight: 2 },
+  { value: { activityType: "WORD_SEARCH", errorMessage: "The longest word has 5 phonemes but the grid is only 4 wide" }, weight: 3 },
+  { value: { activityType: "WORD_SEARCH", errorMessage: "No words could be placed in a grid that size" }, weight: 1 },
+  // A stale bookmark or shared link to an activity id that is gone.
+  { value: { activityType: "UNKNOWN", errorMessage: "Activity not found" }, weight: 2 },
+];
 
 // Typical seconds on each page — the builders take longest, as expected for
 // pages where a teacher is configuring something.
@@ -123,22 +133,31 @@ async function simulate() {
   }));
 
   const generations = Array.from({ length: GENERATIONS }, () => {
+    const createdAt = randomTimestamp(now);
+
+    if (random() < FAILURE_RATE) {
+      const failure = pickWeighted(DELETED_ACTIVITY_FAILURES);
+      return {
+        activityId: null, // the activity was deleted afterwards
+        activityType: failure.activityType,
+        success: false,
+        errorMessage: failure.errorMessage,
+        // Failures are fast: they stop at a check before any HTML is built.
+        durationMs: 4 + Math.floor(random() * 20),
+        simulated: true,
+        createdAt,
+      };
+    }
+
     const activity = pickWeighted(weighted);
-    const failed = random() < FAILURE_RATE;
-    const reasons =
-      FAILURE_REASONS[activity.type as keyof typeof FAILURE_REASONS] ??
-      FAILURE_REASONS.WORDLE;
     return {
       activityId: activity.id,
       activityType: activity.type,
-      success: !failed,
-      errorMessage: failed ? reasons[Math.floor(random() * reasons.length)] : null,
-      // Failures are fast: they stop at a check before any HTML is built.
-      durationMs: failed
-        ? 4 + Math.floor(random() * 20)
-        : 25 + Math.floor(random() * 140),
+      success: true,
+      errorMessage: null,
+      durationMs: 25 + Math.floor(random() * 140),
       simulated: true,
-      createdAt: randomTimestamp(now),
+      createdAt,
     };
   });
 
