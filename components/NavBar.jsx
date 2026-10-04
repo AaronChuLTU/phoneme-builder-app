@@ -133,21 +133,21 @@ export default function NavBar() {
             aria-label={open ? "Close navigation menu" : "Open navigation menu"}
             className="rounded border border-[var(--border)] p-2 text-[var(--text)] hover:bg-[var(--accent-soft)]"
           >
-            {/* Drawn as one SVG rather than three stacked divs: at 2px
-                thick, flex layout rounds each bar to the nearest physical
-                pixel independently, so they could render at very slightly
-                different weights. A single SVG's strokes do not have that
-                problem. */}
+            {/* Three equal bars. Drawn as rects on even-numbered rows with
+                crispEdges, so each bar snaps to whole screen pixels instead
+                of being anti-aliased differently — at 125% or 150% Windows
+                scaling, 2px lines otherwise round to different thicknesses. */}
             <svg
               aria-hidden="true"
               width="20"
               height="16"
               viewBox="0 0 20 16"
-              fill="none"
+              shapeRendering="crispEdges"
+              className="block"
             >
-              <line x1="0" y1="1" x2="20" y2="1" stroke="currentColor" strokeWidth="2" />
-              <line x1="0" y1="8" x2="20" y2="8" stroke="currentColor" strokeWidth="2" />
-              <line x1="0" y1="15" x2="20" y2="15" stroke="currentColor" strokeWidth="2" />
+              <rect x="0" y="2" width="20" height="2" fill="currentColor" />
+              <rect x="0" y="8" width="20" height="2" fill="currentColor" />
+              <rect x="0" y="14" width="20" height="2" fill="currentColor" />
             </svg>
           </button>
         </div>

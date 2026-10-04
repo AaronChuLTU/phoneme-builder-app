@@ -21,6 +21,15 @@ import type { HealthResult } from "@/lib/health";
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const SERIES_DAYS = 14;
 
+/**
+ * Days and times are shown in the users' timezone, not the server's.
+ * The Docker container runs in UTC, so without this a Melbourne teacher's
+ * morning still counted as "yesterday" until 11am. Override with the
+ * DASHBOARD_TIMEZONE environment variable.
+ */
+export const DISPLAY_TIMEZONE =
+  process.env.DASHBOARD_TIMEZONE || "Australia/Melbourne";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -77,22 +86,41 @@ export type ActivityReport = {
 // Pure helpers
 // ---------------------------------------------------------------------------
 
+/** The calendar date ("2026-10-05") of an instant, in the given timezone. */
+export function localDateKey(instant: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(instant);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value;
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
 /**
  * Bucket generation events into one entry per day for the last `days` days,
- * including days with no activity — an empty day is information too.
+ * in `timeZone`, including days with no activity.
+ *
+ * Days are counted back by calendar date, not by subtracting 24 hours. On a
+ * daylight saving change a day is 23 or 25 hours long, so stepping back in
+ * 24-hour jumps can land twice on one date and skip another entirely.
  */
 export function buildDailySeries(
   events: { createdAt: Date; success: boolean }[],
   days: number,
-  now: Date
+  now: Date,
+  timeZone: string = DISPLAY_TIMEZONE
 ): DailyPoint[] {
+  const [year, month, day] = localDateKey(now, timeZone).split("-").map(Number);
   const points: DailyPoint[] = [];
   const index = new Map<string, DailyPoint>();
 
   for (let offset = days - 1; offset >= 0; offset--) {
-    const day = new Date(now.getTime() - offset * DAY_MS);
-    const date = day.toISOString().slice(0, 10);
-    const label = day.toLocaleDateString("en-AU", {
+    // Pure calendar arithmetic in UTC space — no timezone or DST involved.
+    const calendarDay = new Date(Date.UTC(year, month - 1, day - offset));
+    const date = calendarDay.toISOString().slice(0, 10);
+    const label = calendarDay.toLocaleDateString("en-AU", {
       day: "numeric",
       month: "short",
       timeZone: "UTC",
@@ -103,13 +131,56 @@ export function buildDailySeries(
   }
 
   for (const event of events) {
-    const point = index.get(event.createdAt.toISOString().slice(0, 10));
+    const point = index.get(localDateKey(event.createdAt, timeZone));
     if (!point) continue;
     if (event.success) point.success++;
     else point.failed++;
   }
 
   return points;
+}
+
+/** "5 Oct, 14:32" in the display timezone. */
+export function formatDateTime(
+  value: Date | string,
+  timeZone: string = DISPLAY_TIMEZONE
+): string {
+  return new Date(value).toLocaleString("en-AU", {
+    timeZone,
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+/** "14:32:05" in the display timezone. */
+export function formatTime(
+  value: Date | string,
+  timeZone: string = DISPLAY_TIMEZONE
+): string {
+  return new Date(value).toLocaleTimeString("en-AU", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
+/** "AEDT" / "AEST" — whichever applies at that instant. */
+export function timezoneAbbreviation(
+  at: Date,
+  timeZone: string = DISPLAY_TIMEZONE
+): string {
+  const part = new Intl.DateTimeFormat("en-AU", {
+    timeZone,
+    timeZoneName: "short",
+  })
+    .formatToParts(at)
+    .find((p) => p.type === "timeZoneName");
+  return part?.value ?? timeZone;
 }
 
 /** The activity type with the most generations, with its share. */
@@ -280,7 +351,7 @@ export function typeLabel(type: string): string {
 export async function getDashboardSummary(health: HealthResult) {
   const now = new Date();
   const since24h = new Date(now.getTime() - DAY_MS);
-  const sinceSeries = new Date(now.getTime() - SERIES_DAYS * DAY_MS);
+  const sinceSeries = new Date(now.getTime() - (SERIES_DAYS + 1) * DAY_MS);
 
   const [
     activitiesByType,

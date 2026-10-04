@@ -19,6 +19,9 @@ import { checkHealth } from "@/lib/health";
 import {
   getDashboardSummary,
   formatDuration,
+  formatDateTime,
+  formatTime,
+  timezoneAbbreviation,
   typeLabel,
   SERIES_DAYS,
   type Severity,
@@ -79,6 +82,8 @@ export default async function DashboardPage() {
   const typeMax = Math.max(1, ...s.generations.byType.map((t) => t.count));
   const pathMax = Math.max(1, ...s.pageViews.byPath.map((p) => p.views));
   const simulatedTotal = s.simulated.generations + s.simulated.pageViews;
+  // "AEDT" or "AEST" — whichever applies right now.
+  const tz = timezoneAbbreviation(new Date(s.generatedAt));
 
   return (
     <div className="flex flex-col gap-8">
@@ -87,7 +92,7 @@ export default async function DashboardPage() {
           Live health, usage and alerts for the activity builder, computed from
           the database each time this page loads.
         </PageHeader>
-        <AutoRefresh generatedAt={s.generatedAt} />
+        <AutoRefresh updatedLabel={`${formatTime(s.generatedAt)} ${tz}`} />
       </div>
 
       {/* ------------------------------------------------------------ */}
@@ -221,6 +226,9 @@ export default async function DashboardPage() {
         <h2 id="series-heading" className="mb-3 text-lg font-semibold">
           Generations, last {SERIES_DAYS} days
         </h2>
+        <p className="-mt-2 mb-3 text-xs text-[var(--text-muted)]">
+          Days in {tz} (Melbourne time).
+        </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <caption className="sr-only">
@@ -294,7 +302,7 @@ export default async function DashboardPage() {
                   <th scope="col" className="py-1 pr-3 font-medium">Usable words</th>
                   <th scope="col" className="py-1 pr-3 font-medium">Success</th>
                   <th scope="col" className="py-1 pr-3 font-medium">Failed</th>
-                  <th scope="col" className="py-1 pr-3 font-medium">Last generated</th>
+                  <th scope="col" className="py-1 pr-3 font-medium">Last generated ({tz})</th>
                   <th scope="col" className="py-1 font-medium">Output</th>
                 </tr>
               </thead>
@@ -329,9 +337,7 @@ export default async function DashboardPage() {
                     <td className="py-2 pr-3">{a.success}</td>
                     <td className="py-2 pr-3">{a.failed}</td>
                     <td className="whitespace-nowrap py-2 pr-3">
-                      {a.lastGeneratedAt
-                        ? a.lastGeneratedAt.slice(0, 16).replace("T", " ")
-                        : "Never"}
+                      {a.lastGeneratedAt ? formatDateTime(a.lastGeneratedAt) : "Never"}
                     </td>
                     <td className="py-2">
                       <div className="flex gap-2">
@@ -486,7 +492,7 @@ export default async function DashboardPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-[var(--text-muted)]">
-                  <th scope="col" className="py-1 pr-3 font-medium">When (UTC)</th>
+                  <th scope="col" className="py-1 pr-3 font-medium">When ({tz})</th>
                   <th scope="col" className="py-1 pr-3 font-medium">Activity</th>
                   <th scope="col" className="py-1 font-medium">Reason</th>
                 </tr>
@@ -495,7 +501,7 @@ export default async function DashboardPage() {
                 {s.recentFailures.map((f) => (
                   <tr key={f.id} className="border-t border-[var(--border)]">
                     <td className="whitespace-nowrap py-1.5 pr-3">
-                      {f.createdAt.slice(0, 16).replace("T", " ")}
+                      {formatDateTime(f.createdAt)}
                     </td>
                     <td className="py-1.5 pr-3">
                       {/* A null activity means it was deleted after this
