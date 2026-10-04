@@ -44,3 +44,9 @@ next-env.d.ts
 prisma/dev.db
 prisma/dev.db-journal
 /lib/generated/prisma
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+
