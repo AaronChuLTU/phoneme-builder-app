@@ -50,3 +50,4 @@ prisma/dev.db-journal
 /playwright-report/
 /blob-report/
 
+/load-tests/results/x*/
