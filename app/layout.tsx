@@ -10,6 +10,7 @@
  * cannot know about — the OS setting, when the preference is "system".
  */
 
+import PageTimer from "@/components/PageTimer";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import "./globals.css";
@@ -65,6 +66,7 @@ export default async function RootLayout({
           Skip to main content
         </a>
         <ThemeSync />
+        <PageTimer />
         <Header />
         <NavBar />
         <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">

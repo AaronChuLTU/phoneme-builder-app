@@ -40,6 +40,7 @@ const PRIMARY_LINKS = [
 ];
 
 const SECONDARY_LINKS = [
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/manage", label: "Manage" },
   { href: "/about", label: "About" },
   { href: "/settings", label: "Settings" },

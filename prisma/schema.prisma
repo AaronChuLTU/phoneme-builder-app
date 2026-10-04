@@ -8,18 +8,16 @@
 //    occupy two character spaces, so splitting a string by character would
 //    corrupt them.
 //
-//  - SQLite has no native enum type, so `Activity.type` and
-//    `Activity.difficulty` are stored as String and validated in application
-//    code before any write. Moving to PostgreSQL later would allow real
-//    enums with no other change to the model.
+//  - SQLite has no native enum type, so string fields such as
+//    `Activity.type` are validated in application code before any write.
 //
-//  - binaryTargets lists BOTH the platform this was developed on and the
-//    platform Docker runs on. Prisma's query engine is a native binary
-//    compiled per OS; "native" alone only covers whichever machine runs
-//    `prisma generate`. Without "linux-musl-openssl-3.0.x" here, a client
-//    generated on Windows has no engine that runs inside the Alpine Linux
-//    base image used by the Dockerfile, and every query fails at container
-//    startup.
+//  - binaryTargets lists both the development platform and the Linux
+//    platform Docker runs on, so the query engine exists for both.
+//
+//  - GenerationEvent and PageView (Assessment 3) store the raw events behind
+//    the dashboard. Metrics are computed from these rows on request rather
+//    than kept as running totals, so a number on the dashboard can always be
+//    traced back to the events that produced it.
 
 generator client {
   provider      = "prisma-client"
@@ -32,16 +30,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// A single phoneme symbol from the HCE inventory, with the English
-/// equivalence shown as a hint and its position on the on-screen keyboard.
-/// Each symbol exists exactly once, so a hint is defined in one place only.
+/// A single phoneme symbol from the HCE inventory.
 model Phoneme {
   id      Int    @id @default(autoincrement())
-  symbol  String @unique // e.g. "θ"
-  label   String // e.g. "TH"
-  example String // e.g. "thin"
+  symbol  String @unique
+  label   String
+  example String
 
-  // Position in the keyboard grid, so the layout is data rather than code.
   rowIndex Int
   colIndex Int
 
@@ -63,8 +58,7 @@ model WordList {
   updatedAt DateTime @updatedAt
 }
 
-/// A single word, stored with its English spelling. Its phoneme sequence
-/// lives in WordPhoneme rather than in a column here.
+/// A single word. Its phoneme sequence lives in WordPhoneme.
 model Word {
   id      Int    @id @default(autoincrement())
   english String
@@ -77,15 +71,10 @@ model Word {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // The same word twice in one list would be a duplicate entry in a puzzle.
   @@unique([wordListId, english])
 }
 
 /// The ordered link between a word and its phonemes.
-///
-/// This table is what makes multi-character phonemes safe: "thin" becomes
-/// three rows — (θ, 0), (ɪ, 1), (n, 2) — so no string ever has to be split
-/// to recover the sounds.
 model WordPhoneme {
   id Int @id @default(autoincrement())
 
@@ -95,42 +84,84 @@ model WordPhoneme {
   phonemeId Int
   phoneme   Phoneme @relation(fields: [phonemeId], references: [id], onDelete: Restrict)
 
-  /// Zero-based index of this phoneme within the word.
   position Int
 
-  // A word cannot have two phonemes at the same position.
   @@unique([wordId, position])
   @@index([phonemeId])
 }
 
-/// A saved activity configuration. One word list can drive many activities —
-/// the same words as an easy Wordle and as a hard word search, for example.
+/// A saved activity configuration.
 model Activity {
   id   Int    @id @default(autoincrement())
   name String
 
-  /// "WORDLE" or "WORD_SEARCH". Validated in application code; see note above.
+  /// "WORDLE" or "WORD_SEARCH". Validated in application code.
   type String
 
   wordListId Int
   wordList   WordList @relation(fields: [wordListId], references: [id], onDelete: Cascade)
 
-  // Shared settings
   showHints Boolean @default(true)
 
   // Wordle settings
-  maxGuesses Int @default(6)
+  maxGuesses Int  @default(6)
+  /// Restrict a Wordle to words of this many phonemes. Null means any length.
   wordLength Int?
-  
+
   // Word search settings
   gridSize     Int     @default(10)
-  /// "easy", "medium" or "hard" — controls which directions words may run.
   difficulty   String  @default("medium")
   allowAnswers Boolean @default(true)
+
+  generations GenerationEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([type])
   @@index([wordListId])
+}
+
+/// One attempt to generate an activity file, successful or not.
+///
+/// onDelete: SetNull — deleting an activity keeps its generation history.
+/// Usage statistics should not silently shrink because a teacher tidied up
+/// their activity list; the event still happened.
+model GenerationEvent {
+  id Int @id @default(autoincrement())
+
+  activityId Int?
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  /// Copied at the time of the event, so the type is still known after the
+  /// activity itself is deleted. "UNKNOWN" when the request never resolved
+  /// to a real activity (e.g. a bad id).
+  activityType String
+
+  success      Boolean
+  errorMessage String?
+  durationMs   Int
+
+  /// True for records created by prisma/simulate.ts. Kept so the dashboard
+  /// can state honestly how much of what it shows is real usage.
+  simulated Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([success])
+  @@index([activityType])
+}
+
+/// Time a visitor spent on one page, reported by the PageTimer component.
+model PageView {
+  id         Int     @id @default(autoincrement())
+  path       String
+  durationMs Int
+  simulated  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([path])
+  @@index([createdAt])
 }
